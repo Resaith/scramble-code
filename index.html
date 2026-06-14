@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scramble Rubik</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101418;
+      --panel: #171d22;
+      --text: #f4f7f9;
+      --muted: #a7b2bb;
+      --accent: #36d399;
+      --accent-2: #ffcc66;
+      --border: #2b343b;
+      --red: #ff5b63;
+      --blue: #4da3ff;
+      --green: #3dde8a;
+      --orange: #ff9959;
+      --white: #f7f7f2;
+      --yellow: #ffd84d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(54, 211, 153, 0.12), transparent 28rem),
+        radial-gradient(circle at 90% 80%, rgba(77, 163, 255, 0.12), transparent 26rem),
+        var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(960px, 100%);
+      display: grid;
+      gap: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      font-weight: 750;
+    }
+
+    .cube-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 2px;
+      transform: rotate(-8deg);
+    }
+
+    .cube-mark span {
+      border-radius: 2px;
+    }
+
+    .r { background: var(--red); }
+    .b { background: var(--blue); }
+    .g { background: var(--green); }
+    .o { background: var(--orange); }
+    .w { background: var(--white); }
+    .y { background: var(--yellow); }
+
+    .key {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-weight: 700;
+    }
+
+    .scramble-panel {
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      border-radius: 8px;
+      padding: clamp(22px, 5vw, 52px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26);
+    }
+
+    .label {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    #scramble {
+      min-height: 3.4em;
+      margin: 0;
+      font-size: clamp(28px, 6vw, 64px);
+      line-height: 1.16;
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #08110d;
+      font: inherit;
+      font-weight: 850;
+      padding: 13px 18px;
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline: 3px solid var(--accent-2);
+      outline-offset: 3px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .flash {
+      animation: flash 170ms ease-out;
+    }
+
+    @keyframes flash {
+      from {
+        transform: translateY(4px);
+        opacity: 0.35;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 18px;
+      }
+
+      .topbar,
+      .actions {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="topbar">
+      <div class="brand" aria-label="Generador de scramble Rubik">
+        <div class="cube-mark" aria-hidden="true">
+          <span class="r"></span><span class="b"></span><span class="y"></span>
+          <span class="g"></span><span class="w"></span><span class="o"></span>
+          <span class="b"></span><span class="r"></span><span class="g"></span>
+        </div>
+        <span>Scramble 3x3</span>
+      </div>
+      <div>Presiona <span class="key">Espacio</span> o toca la pantalla</div>
+    </header>
+
+    <section class="scramble-panel" aria-live="polite">
+      <div class="label">Scramble actual</div>
+      <p id="scramble"></p>
+      <div class="actions">
+        <button id="newScramble" type="button">Nuevo scramble</button>
+        <div class="meta">20 movimientos aleatorios. En celular, toca una vez la pantalla.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const scrambleEl = document.querySelector("#scramble");
+    const button = document.querySelector("#newScramble");
+    const faces = ["U", "D", "R", "L", "F", "B"];
+    const suffixes = ["", "'", "2"];
+    const axis = {
+      U: "y",
+      D: "y",
+      R: "x",
+      L: "x",
+      F: "z",
+      B: "z"
+    };
+
+    let previousScramble = "";
+
+    function pick(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function createScramble(length = 20) {
+      const moves = [];
+
+      while (moves.length < length) {
+        const face = pick(faces);
+        const last = moves[moves.length - 1];
+        const secondLast = moves[moves.length - 2];
+
+        if (last && face === last.face) continue;
+        if (secondLast && axis[face] === axis[last.face] && axis[face] === axis[secondLast.face]) continue;
+
+        moves.push({
+          face,
+          move: `${face}${pick(suffixes)}`
+        });
+      }
+
+      return moves.map((item) => item.move).join(" ");
+    }
+
+    function renderScramble() {
+      let next = createScramble();
+
+      while (next === previousScramble) {
+        next = createScramble();
+      }
+
+      previousScramble = next;
+      scrambleEl.textContent = next;
+      scrambleEl.classList.remove("flash");
+      window.requestAnimationFrame(() => scrambleEl.classList.add("flash"));
+    }
+
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      renderScramble();
+    });
+
+    window.addEventListener("pointerup", (event) => {
+      if (event.pointerType === "touch" && !event.target.closest("button")) {
+        renderScramble();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const target = event.target;
+      const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target.isContentEditable;
+
+      if (event.code === "Space" && !isTyping) {
+        event.preventDefault();
+        renderScramble();
+      }
+    });
+
+    renderScramble();
+  </script>
+</body>
+</html>
